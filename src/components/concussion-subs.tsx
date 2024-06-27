@@ -7,7 +7,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableCaption,
 } from './ui/table';
+import { format } from '@formkit/tempo';
 
 type ConcussionSubsProps = {
   leagueName: string;
@@ -19,7 +21,16 @@ const getSubs = async (envVar: string) => {
 
   const data = (await response.json()) as ConcussionSubData;
 
-  return data.results.sort((a, b) => b.date - a.date);
+  const results = data.results.sort((a, b) => b.date - a.date);
+
+  return results.map((sub) => ({
+    ...sub,
+    date: format({
+      date: new Date(sub.date),
+      format: 'YYYY-MM-DD HH:mm',
+      tz: 'America/Toronto',
+    }),
+  }));
 };
 
 type ConcussionSubRowProps = {
@@ -27,7 +38,7 @@ type ConcussionSubRowProps = {
   name: string;
   team: string;
   competition: string;
-  date: number;
+  date: string;
   timeOfInjury: string;
 };
 
@@ -68,10 +79,13 @@ const ConcussionSubs = ({ leagueName, envVar }: ConcussionSubsProps) => {
   return (
     <>
       <h2 className='text-xl'>{leagueName}</h2>
-      {result.isLoading ? 'Loading' : null}
+      {result.isLoading || result.isFetching ? 'Loading' : null}
       {result.isError ? 'Something went wrong' : null}
-      {result.isSuccess ? (
+      {result.isSuccess && !result.isFetching ? (
         <Table>
+          {result.data.length === 0 ? (
+            <TableCaption>No results found.</TableCaption>
+          ) : null}
           <TableHeader>
             <TableRow>
               <TableHead>Match</TableHead>
